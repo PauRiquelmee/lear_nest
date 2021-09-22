@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Users from '../db/shemas/users';
 import bcrypt from 'bcrypt';
 import { mongo } from 'mongoose';
+import { sendError } from '../utils/errors';
 
 const getUsers = async (req: Request, res: Response): Promise<void> => {
   const users = await Users.find().select({ password: 0, __v: 0 });
@@ -43,4 +44,21 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export { getUsers, getUsersById, createUser };
+const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+    const user = await Users.findOne({ email });
+    if (!user) {
+      throw { code: 404, message: 'User not found' };
+    }
+    const isOk: boolean = await bcrypt.compare(password, user.password);
+    if (!isOk) {
+      throw { code: 404, message: 'Invalid password' };
+    }
+    res.send({ token: 'cualquiercosa', expiresIn: 600 });
+  } catch (e) {
+    sendError(res, e);
+  }
+};
+
+export { getUsers, getUsersById, createUser, login };

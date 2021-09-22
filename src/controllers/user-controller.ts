@@ -3,6 +3,7 @@ import Users from '../db/shemas/users';
 import bcrypt from 'bcrypt';
 import { mongo } from 'mongoose';
 import { sendError } from '../utils/errors';
+import jwt from 'jsonwebtoken';
 
 const getUsers = async (req: Request, res: Response): Promise<void> => {
   const users = await Users.find().select({ password: 0, __v: 0 });
@@ -55,7 +56,13 @@ const login = async (req: Request, res: Response): Promise<void> => {
     if (!isOk) {
       throw { code: 404, message: 'Invalid password' };
     }
-    res.send({ token: 'cualquiercosa', expiresIn: 600 });
+    const expiresIn = 60 * 60;
+    const token: string = await jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET!,
+      { expiresIn }
+    );
+    res.send({ token, expiresIn });
   } catch (e) {
     sendError(res, e);
   }
